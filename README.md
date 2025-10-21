@@ -14,7 +14,7 @@ Currently implemented:
 
 On Debian/Ubuntu systems, ensure the following packages are installed:
 ```
-sudo apt install -y nlohmann-json3-dev libcurl4-openssl-dev libcpp-httplib-dev
+sudo apt install -y cmake build-essential pkg-config nlohmann-json3-dev libcurl4-openssl-dev libcpp-httplib-dev libcli11-dev libleveldb-dev
 ```
 
 ### Building
