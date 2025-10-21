@@ -1,5 +1,5 @@
 # ots-external-indexers
-Provides external indexers of token transfers and holdings for EVM blockchains in support of Otterscan's `ots2` namespace.
+Provides external indexers of token transfers and holdings for EVM blockchains in support of the `ots2` namespace for [https://github.com/otterscan/otterscan](Otterscan).
 
 **Note: This project is currently an early preview. It's experimental and unoptimized. Everything is likely to change.**
 
@@ -28,16 +28,16 @@ cmake --build build -j$(nproc)
 
 Currently the event syncer and RPC server are separate programs. They will be combined.
 
-First, sync:
+First, sync with the execution node, saving the indexer database to `./eventsdb`:
 
 ```
-./build/bin/event_syncer
+./build/bin/event_syncer ./eventsdb --rpc-url http://localhost:8545
 ```
 
-Then, serve:
+Interrupt the event syncer when finished. Then, serve (defaults to listening on `http://localhost:17444`):
 
 ```
-./build/bin/rpc_server
+./build/bin/rpc_server ./eventsdb --rpc-url http://localhost:8545
 ```
 
 ### Contributing
