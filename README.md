@@ -1,5 +1,5 @@
 # ots2-external-indexer
-Provides external indexers of token transfers and holdings for EVM blockchains in support of the `ots2` namespace for [https://github.com/otterscan/otterscan](Otterscan).
+Provides external indexers of token transfers and holdings for EVM blockchains in support of the `ots2` namespace for [Otterscan](https://github.com/otterscan/otterscan).
 
 **Note: This project is currently an early preview. It's experimental and unoptimized. Everything is likely to change.**
 
