@@ -443,7 +443,6 @@ int main(int argc, char* argv[])
                         { "jsonrpc", "2.0" },
                         { "id", id },
                         { "result", std::move(result) },
-                        { "custom", "yes" },
                     };
                 } catch (const std::exception& e) {
                     custom_responses[i] = make_error(id, -32602, e.what());
@@ -457,7 +456,6 @@ int main(int argc, char* argv[])
                         { "jsonrpc", "2.0" },
                         { "id", id },
                         { "result", std::move(result) },
-                        { "custom", "yes" },
                     };
                 } catch (const std::exception& e) {
                     custom_responses[i] = make_error(id, -32602, e.what());
@@ -471,7 +469,6 @@ int main(int argc, char* argv[])
                         { "jsonrpc", "2.0" },
                         { "id", id },
                         { "result", std::move(result) },
-                        { "custom", "yes" },
                     };
                 } catch (const std::exception& e) {
                     custom_responses[i] = make_error(id, -32602, e.what());
@@ -485,7 +482,6 @@ int main(int argc, char* argv[])
                         { "jsonrpc", "2.0" },
                         { "id", id },
                         { "result", std::move(result) },
-                        { "custom", "yes" },
                     };
                 } catch (const std::exception& e) {
                     custom_responses[i] = make_error(id, -32602, e.what());
@@ -499,7 +495,6 @@ int main(int argc, char* argv[])
                         { "jsonrpc", "2.0" },
                         { "id", id },
                         { "result", std::move(result) },
-                        { "custom", "yes" },
                     };
                 } catch (const std::exception& e) {
                     custom_responses[i] = make_error(id, -32602, e.what());
