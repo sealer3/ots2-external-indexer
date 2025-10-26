@@ -12,10 +12,13 @@ Currently implemented:
 
 ### Requirements
 
-On Debian/Ubuntu systems, ensure the following packages are installed:
+1. On Debian/Ubuntu systems, ensure the following packages are installed:
 ```
 sudo apt install -y cmake build-essential pkg-config nlohmann-json3-dev libcurl4-openssl-dev libcpp-httplib-dev libcli11-dev libleveldb-dev
 ```
+
+2. Ensure you are running an execution node for your target EVM blockchain either on your local machine or on a local network.
+   - Syncing a remote node might take an extremely long time, and the initial sync uses lots of node resources.
 
 ### Building
 
