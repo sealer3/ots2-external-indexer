@@ -19,6 +19,7 @@ sudo apt install -y cmake build-essential pkg-config nlohmann-json3-dev libcurl4
 
 2. Ensure you are running an execution node for your target EVM blockchain either on your local machine or on a local network.
    - Syncing a remote node might take an extremely long time, and the initial sync uses lots of node resources.
+   - Any execution node which supports `eth_getLogs` and `eth_getBlockByNumber` is compatible.
 
 ### Building
 
