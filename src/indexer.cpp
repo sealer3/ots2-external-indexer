@@ -150,7 +150,7 @@ static void run_sync_loop(EventDB& db,
         std::optional<uint64_t> tip_opt = rpc_client.get_latest_block();
         if (!tip_opt) {
             std::cerr << "[sync] failed to get latest block, retrying in "
-                      << retry_delay_sec << " s …\n";
+                      << retry_delay_sec << " s ...\n";
             std::this_thread::sleep_for(std::chrono::seconds(retry_delay_sec));
             continue;
         }
@@ -199,7 +199,7 @@ static void run_sync_loop(EventDB& db,
             if (!batch_ok) {
                 std::cerr << "[sync] batch [" << batch_start << '-' << batch_end
                           << "] had failures - retrying in "
-                          << retry_delay_sec << " s …\n";
+                          << retry_delay_sec << " s ...\n";
                 std::this_thread::sleep_for(std::chrono::seconds(retry_delay_sec));
             }
         }
