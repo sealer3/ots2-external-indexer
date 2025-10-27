@@ -456,11 +456,22 @@ static json handle_getTransferList_generic(EventDB& db,
 }
 
 // Thin wrappers for the concrete method names
-static json handle_getERC20TransferCount(EventDB& db, const json& p) { return handle_getTransferCount_generic(db, p, "E"); }
-static json handle_getERC721TransferCount(EventDB& db, const json& p) { return handle_getTransferCount_generic(db, p, "N"); }
-static json handle_getERC20TransferList(EventDB& db, const json& p) { return handle_getTransferList_generic(db, p, "E"); }
-static json handle_getERC721TransferList(EventDB& db, const json& p) { return handle_getTransferList_generic(db, p, "N"); }
-
+static json handle_getERC20TransferCount(EventDB& db, const json& p)
+{
+    return handle_getTransferCount_generic(db, p, "E");
+}
+static json handle_getERC721TransferCount(EventDB& db, const json& p)
+{
+    return handle_getTransferCount_generic(db, p, "N");
+}
+static json handle_getERC20TransferList(EventDB& db, const json& p)
+{
+    return handle_getTransferList_generic(db, p, "E");
+}
+static json handle_getERC721TransferList(EventDB& db, const json& p)
+{
+    return handle_getTransferList_generic(db, p, "N");
+}
 static json handle_getHoldings(EventDB& db, const json& params)
 {
     if (!params.is_array() || params.size() != 1 || !params[0].is_string())
@@ -477,6 +488,47 @@ static json handle_getHoldings(EventDB& db, const json& params)
     }
     return result;
 }
+
+// Method name to handler function mapping
+using HandlerFunc = std::function<json(EventDB&, const json&)>;
+const std::unordered_map<std::string, HandlerFunc> methodHandlers = {
+    { "ots2_getERC20TransferCount", handle_getERC20TransferCount },
+    { "ots2_getERC20TransferList", handle_getERC20TransferList },
+    { "ots2_getERC721TransferCount", handle_getERC721TransferCount },
+    { "ots2_getERC721TransferList", handle_getERC721TransferList },
+    { "ots2_getERC20Holdings", handle_getHoldings }
+};
+
+auto make_error(const json& id, int code, const std::string& msg)
+{
+    return json {
+        { "jsonrpc", "2.0" },
+        { "id", id },
+        { "error", { { "code", code }, { "message", msg } } }
+    };
+};
+
+std::pair<bool, json> try_handle_custom_method(EventDB& db, const json& id,
+    const std::string& method,
+    const json& params)
+{
+    auto it = methodHandlers.find(method);
+    if (it == methodHandlers.end()) {
+        // Not a custom method
+        return { false, json() };
+    }
+
+    try {
+        json result = it->second(db, params);
+        return { true, json { { "jsonrpc", "2.0" }, { "id", id }, { "result", std::move(result) } } };
+    } catch (const std::invalid_argument& e) {
+        return { true, make_error(id, -32602, e.what()) };
+    } catch (const std::runtime_error& e) {
+        return { true, make_error(id, -32000, e.what()) };
+    } catch (const std::exception& e) {
+        return { true, make_error(id, -32603, std::string("Internal error: ") + e.what()) };
+    }
+};
 
 // RPC server runner (starts the HTTP gateway)
 static void run_rpc_server(EventDB& db,
@@ -510,14 +562,6 @@ static void run_rpc_server(EventDB& db,
             return;
         }
 
-        auto make_error = [&](const json& id, int code, const std::string& msg) {
-            return json {
-                { "jsonrpc", "2.0" },
-                { "id", id },
-                { "error", { { "code", code }, { "message", msg } } }
-            };
-        };
-
         // Single request
         if (!root.is_array()) {
             json request = root;
@@ -525,36 +569,22 @@ static void run_rpc_server(EventDB& db,
                 { "jsonrpc", "2.0" },
                 { "id", request.value("id", json(nullptr)) }
             };
-            try {
-                std::string method = request.value("method", "");
-                json params = request.value("params", json::array());
 
-                if (method == "ots2_getERC20TransferCount")
-                    response["result"] = handle_getERC20TransferCount(db, params);
-                else if (method == "ots2_getERC20TransferList")
-                    response["result"] = handle_getERC20TransferList(db, params);
-                else if (method == "ots2_getERC721TransferCount")
-                    response["result"] = handle_getERC721TransferCount(db, params);
-                else if (method == "ots2_getERC721TransferList")
-                    response["result"] = handle_getERC721TransferList(db, params);
-                else if (method == "ots2_getERC20Holdings")
-                    response["result"] = handle_getHoldings(db, params);
-                else {
-                    // proxy everything else
-                    std::string forwarded = forward_to_eth_node(req.body);
-                    res.set_content(forwarded, "application/json");
-                    return;
-                }
-                res.set_content(response.dump(), "application/json");
+            std::string method = request.value("method", "");
+            json params = request.value("params", json::array());
+
+            auto [handled, custom_response] = try_handle_custom_method(
+                db, response["id"], method, params);
+
+            if (handled) {
+                response = custom_response;
+            } else {
+                // Proxy non-custom methods
+                std::string forwarded = forward_to_eth_node(req.body);
+                res.set_content(forwarded, "application/json");
                 return;
-            } catch (const std::invalid_argument& e) {
-                response = make_error(response["id"], -32602, e.what());
-            } catch (const std::runtime_error& e) {
-                response = make_error(response["id"], -32000, e.what());
-            } catch (const std::exception& e) {
-                response = make_error(response["id"], -32603,
-                    std::string("Internal error: ") + e.what());
             }
+
             res.set_content(response.dump(), "application/json");
             return;
         }
@@ -562,13 +592,11 @@ static void run_rpc_server(EventDB& db,
         // Batch request
         std::vector<json> custom_responses(root.size(), nullptr);
         std::vector<json> proxy_requests;
-        std::unordered_map<json, size_t> id_to_index; // not used directly, but kept for parity
 
         for (size_t i = 0; i < root.size(); ++i) {
             const json& req_obj = root[i];
             if (!req_obj.is_object()) {
-                custom_responses[i] = make_error(nullptr, -32600,
-                    "Invalid Request object");
+                custom_responses[i] = make_error(nullptr, -32600, "Invalid Request object");
                 continue;
             }
 
@@ -576,75 +604,14 @@ static void run_rpc_server(EventDB& db,
             std::string method = req_obj.value("method", "");
             json params = req_obj.value("params", json::array());
 
-            // custom methods -------------------------------------------------
-            if (method == "ots2_getERC20TransferCount") {
-                try {
-                    json result = handle_getERC20TransferCount(db, params);
-                    custom_responses[i] = json {
-                        { "jsonrpc", "2.0" },
-                        { "id", id },
-                        { "result", std::move(result) }
-                    };
-                } catch (const std::exception& e) {
-                    custom_responses[i] = make_error(id, -32602, e.what());
-                }
-                continue;
-            }
-            if (method == "ots2_getERC20TransferList") {
-                try {
-                    json result = handle_getERC20TransferList(db, params);
-                    custom_responses[i] = json {
-                        { "jsonrpc", "2.0" },
-                        { "id", id },
-                        { "result", std::move(result) }
-                    };
-                } catch (const std::exception& e) {
-                    custom_responses[i] = make_error(id, -32602, e.what());
-                }
-                continue;
-            }
-            if (method == "ots2_getERC721TransferCount") {
-                try {
-                    json result = handle_getERC721TransferCount(db, params);
-                    custom_responses[i] = json {
-                        { "jsonrpc", "2.0" },
-                        { "id", id },
-                        { "result", std::move(result) }
-                    };
-                } catch (const std::exception& e) {
-                    custom_responses[i] = make_error(id, -32602, e.what());
-                }
-                continue;
-            }
-            if (method == "ots2_getERC721TransferList") {
-                try {
-                    json result = handle_getERC721TransferList(db, params);
-                    custom_responses[i] = json {
-                        { "jsonrpc", "2.0" },
-                        { "id", id },
-                        { "result", std::move(result) }
-                    };
-                } catch (const std::exception& e) {
-                    custom_responses[i] = make_error(id, -32602, e.what());
-                }
-                continue;
-            }
-            if (method == "ots2_getERC20Holdings") {
-                try {
-                    json result = handle_getHoldings(db, params);
-                    custom_responses[i] = json {
-                        { "jsonrpc", "2.0" },
-                        { "id", id },
-                        { "result", std::move(result) }
-                    };
-                } catch (const std::exception& e) {
-                    custom_responses[i] = make_error(id, -32602, e.what());
-                }
-                continue;
-            }
+            auto [handled, custom_response] = try_handle_custom_method(
+                db, id, method, params);
 
-            // anything else, proxy later
-            proxy_requests.push_back(req_obj);
+            if (handled) {
+                custom_responses[i] = custom_response;
+            } else {
+                proxy_requests.push_back(req_obj);
+            }
         }
 
         // Proxy the non-custom calls as a single batch
