@@ -21,7 +21,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${BIN_DIR}")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CPPHTTPLIB REQUIRED cpp-httplib)
-# Wrap the pkg‑config result in an imported interface target
+# Wrap the pkg-config result in an imported interface target
 add_library(cpp-httplib::cpp-httplib INTERFACE IMPORTED)
 set_target_properties(cpp-httplib::cpp-httplib PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${CPPHTTPLIB_INCLUDE_DIRS}"
@@ -39,7 +39,8 @@ file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.cpp")
 list(REMOVE_ITEM LIB_SOURCES
     "${SRC_DIR}/main.cpp"
     "${SRC_DIR}/fetch_events.cpp"
-    "${SRC_DIR}/rpc_server.cpp")
+    "${SRC_DIR}/rpc_server.cpp"
+    "${SRC_DIR}/indexer.cpp")
 
 set(LIB_SRCS ${LIB_SOURCES})
 
@@ -69,3 +70,4 @@ endfunction()
 add_event_target(event_syncer "${SRC_DIR}/main.cpp")
 add_event_target(fetch_events "${SRC_DIR}/fetch_events.cpp")
 add_event_target(rpc_server "${SRC_DIR}/rpc_server.cpp")
+add_event_target(indexer "${SRC_DIR}/indexer.cpp")
