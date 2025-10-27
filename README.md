@@ -30,19 +30,13 @@ cmake --build build -j$(nproc)
 
 ### Running
 
-Currently the event syncer and RPC server are separate programs. They will be combined.
-
-First, sync with the execution node, saving the indexer database to `./eventsdb`:
+Run the indexer to sync with the execution node, saving the indexer database to `./eventsdb`, and serve RPC requests (defaults to listening on `http://localhost:17444`):
 
 ```
-./build/bin/event_syncer ./eventsdb --rpc-url http://localhost:8545
+./build/bin/indexer ./eventsdb --rpc-url http://localhost:8545
 ```
 
-Interrupt the event syncer when finished. Then, serve (defaults to listening on `http://localhost:17444`):
-
-```
-./build/bin/rpc_server ./eventsdb --rpc-url http://localhost:8545
-```
+The indexer will finish the current sync batch and exit gracefully when interrupted.
 
 ### Contributing
 
